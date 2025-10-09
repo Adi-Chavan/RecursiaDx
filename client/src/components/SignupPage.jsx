@@ -8,6 +8,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { toast } from 'sonner'
+import { useAuth } from '../contexts/AuthContext'
 import { 
   Activity,
   Eye, 
@@ -28,6 +29,7 @@ import {
 } from 'lucide-react'
 
 export function SignupPage({ onSignup, onBackToHome, onGoToLogin }) {
+  const { register, isRegisterLoading, error: authError } = useAuth()
   const [currentStep, setCurrentStep] = useState(1)
   const [formData, setFormData] = useState({
     // Personal Info
@@ -59,7 +61,6 @@ export function SignupPage({ onSignup, onBackToHome, onGoToLogin }) {
   
   const [showPassword, setShowPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState({})
 
   const roles = [
@@ -109,6 +110,8 @@ export function SignupPage({ onSignup, onBackToHome, onGoToLogin }) {
       if (!formData.password) newErrors.password = 'Password is required'
       else if (formData.password.length < 8) {
         newErrors.password = 'Password must be at least 8 characters'
+      } else if (!/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])/.test(formData.password)) {
+        newErrors.password = 'Password must contain at least one uppercase letter, lowercase letter, number, and special character'
       }
       if (formData.password !== formData.confirmPassword) {
         newErrors.confirmPassword = 'Passwords do not match'
@@ -148,22 +151,25 @@ export function SignupPage({ onSignup, onBackToHome, onGoToLogin }) {
   const handleSubmit = async () => {
     if (!validateStep(4)) return
     
-    setIsLoading(true)
-    
-    // Simulate account creation
-    setTimeout(() => {
-      setIsLoading(false)
-      toast.success('Account created successfully! Please check your email for verification.')
+    try {
+      const result = await register(formData)
       
-      setTimeout(() => {
-        onSignup({
-          email: formData.email,
-          name: `${formData.firstName} ${formData.lastName}`,
-          role: formData.role,
-          institution: formData.institution
-        })
-      }, 1500)
-    }, 2000)
+      if (result.success) {
+        // Registration successful, call onSignup callback
+        setTimeout(() => {
+          onSignup({
+            email: formData.email,
+            name: `${formData.firstName} ${formData.lastName}`,
+            role: formData.role,
+            institution: formData.institution,
+            user: result.user
+          })
+        }, 1500)
+      }
+    } catch (error) {
+      console.error('Registration error:', error)
+      // Error handling is managed by the AuthContext
+    }
   }
 
   const renderStep = () => {
@@ -421,6 +427,14 @@ export function SignupPage({ onSignup, onBackToHome, onGoToLogin }) {
               <p className="text-gray-600">Please review and accept our terms to complete your registration.</p>
             </div>
 
+            {/* Display authentication error */}
+            {authError && (
+              <Alert variant="destructive">
+                <AlertCircle className="h-4 w-4" />
+                <AlertDescription>{authError}</AlertDescription>
+              </Alert>
+            )}
+
             <div className="space-y-4">
               <div className="flex items-start space-x-3">
                 <Checkbox
@@ -567,9 +581,9 @@ export function SignupPage({ onSignup, onBackToHome, onGoToLogin }) {
                   <ArrowLeft className="h-4 w-4 ml-2 rotate-180" />
                 </Button>
               ) : (
-                <Button onClick={handleSubmit} disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isLoading ? 'Creating Account...' : 'Create Account'}
+                <Button onClick={handleSubmit} disabled={isRegisterLoading}>
+                  {isRegisterLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isRegisterLoading ? 'Creating Account...' : 'Create Account'}
                 </Button>
               )}
             </div>

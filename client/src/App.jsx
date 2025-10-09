@@ -11,57 +11,45 @@ import { AnalysisDashboard } from './components/AnalysisDashboard'
 import { ResultsReview } from './components/ResultsReview'
 import { ReportGeneration } from './components/ReportGeneration'
 import { Toaster } from '@/components/ui/sonner'
+import { AuthProvider, useAuth } from './contexts/AuthContext'
 
-const App = () => {
+const AppContent = () => {
+  const { isAuthenticated, user, logout, loading } = useAuth()
   // Application state
   const [currentPage, setCurrentPage] = useState('home') // home, login, signup, dashboard
   const [activeTab, setActiveTab] = useState('upload')
-  const [user, setUser] = useState(null)
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
 
-  // Check for existing session on app load
+  // Update page based on authentication status
   useEffect(() => {
-    const savedUser = localStorage.getItem('recursiaDxUser')
-    if (savedUser) {
-      try {
-        const userData = JSON.parse(savedUser)
-        setUser(userData)
-        setIsAuthenticated(true)
-        setCurrentPage('dashboard')
-      } catch (error) {
-        console.error('Error parsing saved user data:', error)
-        localStorage.removeItem('recursiaDxUser')
-      }
+    if (isAuthenticated && currentPage === 'home') {
+      setCurrentPage('dashboard')
+    } else if (!isAuthenticated && currentPage === 'dashboard') {
+      setCurrentPage('home')
     }
-  }, [])
+  }, [isAuthenticated, currentPage])
 
   // Authentication handlers
   const handleLogin = (userData) => {
-    setUser(userData)
-    setIsAuthenticated(true)
     setCurrentPage('dashboard')
-    
-    // Save to localStorage if remember me is checked
-    if (userData.rememberMe) {
-      localStorage.setItem('recursiaDxUser', JSON.stringify(userData))
-    }
   }
 
   const handleSignup = (userData) => {
-    setUser(userData)
-    setIsAuthenticated(true)
     setCurrentPage('dashboard')
-    
-    // Save new user to localStorage
-    localStorage.setItem('recursiaDxUser', JSON.stringify(userData))
   }
 
-  const handleLogout = () => {
-    setUser(null)
-    setIsAuthenticated(false)
+  const handleLogout = async () => {
+    await logout()
     setCurrentPage('home')
     setActiveTab('upload')
-    localStorage.removeItem('recursiaDxUser')
+  }
+
+  // Show loading screen while checking authentication
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    )
   }
 
   // Navigation handlers
@@ -181,6 +169,14 @@ const App = () => {
       {renderCurrentPage()}
       <Toaster />
     </>
+  )
+}
+
+const App = () => {
+  return (
+    <AuthProvider>
+      <AppContent />
+    </AuthProvider>
   )
 }
 

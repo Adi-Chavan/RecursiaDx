@@ -8,6 +8,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
 import { toast } from 'sonner'
+import { useAuth } from '../contexts/AuthContext'
 import { 
   Activity,
   Eye, 
@@ -24,14 +25,13 @@ import {
 } from 'lucide-react'
 
 export function LoginPage({ onLogin, onBackToHome, onGoToSignup }) {
+  const { login, isLoginLoading, error: authError } = useAuth()
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     rememberMe: false
   })
   const [showPassword, setShowPassword] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState('')
   const [selectedRole, setSelectedRole] = useState('technician')
 
   const userRoles = [
@@ -40,21 +40,21 @@ export function LoginPage({ onLogin, onBackToHome, onGoToSignup }) {
       title: 'Medical Technologist',
       description: 'Lab technicians and medical technologists',
       icon: Users,
-      credentials: { email: 'tech@recursiaDx.com', password: 'demo123' }
+      credentials: { email: 'tech@recursiadx.com', password: 'Demo123!' }
     },
     {
       id: 'pathologist', 
       title: 'Pathologist',
       description: 'Board-certified pathologists and physicians',
       icon: Building2,
-      credentials: { email: 'pathologist@recursiaDx.com', password: 'demo123' }
+      credentials: { email: 'pathologist@recursiadx.com', password: 'Demo123!' }
     },
     {
       id: 'admin',
       title: 'Lab Administrator',
       description: 'Lab managers and administrators',
       icon: Shield,
-      credentials: { email: 'admin@recursiaDx.com', password: 'demo123' }
+      credentials: { email: 'admin@recursiadx.com', password: 'Demo123!' }
     }
   ]
 
@@ -63,7 +63,6 @@ export function LoginPage({ onLogin, onBackToHome, onGoToSignup }) {
       ...prev,
       [field]: value
     }))
-    setError('')
   }
 
   const handleDemoLogin = (role) => {
@@ -80,42 +79,34 @@ export function LoginPage({ onLogin, onBackToHome, onGoToSignup }) {
     e.preventDefault()
     
     if (!formData.email || !formData.password) {
-      setError('Please fill in all required fields')
+      toast.error('Please fill in all required fields')
       return
     }
 
     if (!formData.email.includes('@')) {
-      setError('Please enter a valid email address')
+      toast.error('Please enter a valid email address')
       return
     }
 
-    setIsLoading(true)
-    setError('')
-
-    // Simulate login process
-    setTimeout(() => {
-      setIsLoading(false)
+    try {
+      const result = await login(formData.email, formData.password, formData.rememberMe)
       
-      // Check demo credentials
-      const validRole = userRoles.find(role => 
-        role.credentials.email === formData.email && 
-        role.credentials.password === formData.password
-      )
-
-      if (validRole) {
-        toast.success(`Welcome back! Logging in as ${validRole.title}`)
+      if (result.success) {
+        // Login successful, call onLogin callback
         setTimeout(() => {
           onLogin({
             email: formData.email,
-            role: validRole.id,
-            name: validRole.title,
-            rememberMe: formData.rememberMe
+            role: result.user.role,
+            name: result.user.name,
+            rememberMe: formData.rememberMe,
+            user: result.user
           })
         }, 1500)
-      } else {
-        setError('Invalid email or password. Try demo credentials above.')
       }
-    }, 2000)
+    } catch (error) {
+      console.error('Login error:', error)
+      // Error handling is managed by the AuthContext
+    }
   }
 
   return (
@@ -228,10 +219,10 @@ export function LoginPage({ onLogin, onBackToHome, onGoToSignup }) {
 
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-4">
-                {error && (
+                {authError && (
                   <Alert variant="destructive">
                     <AlertCircle className="h-4 w-4" />
-                    <AlertDescription>{error}</AlertDescription>
+                    <AlertDescription>{authError}</AlertDescription>
                   </Alert>
                 )}
 
@@ -290,9 +281,9 @@ export function LoginPage({ onLogin, onBackToHome, onGoToSignup }) {
                   </a>
                 </div>
 
-                <Button type="submit" className="w-full" disabled={isLoading}>
-                  {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                  {isLoading ? 'Signing in...' : 'Sign in'}
+                <Button type="submit" className="w-full" disabled={isLoginLoading}>
+                  {isLoginLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                  {isLoginLoading ? 'Signing in...' : 'Sign in'}
                 </Button>
               </form>
 

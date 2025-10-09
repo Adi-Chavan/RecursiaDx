@@ -4,7 +4,7 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  --background: oklch(95.08% 0.0481 184.07);
+  --background: #f0f6fc;
   --secondary-background: oklch(100% 0 0);
   --foreground: oklch(0% 0 0);
   --main-foreground: oklch(0% 0 0);
@@ -13,8 +13,8 @@
   --ring: oklch(0% 0 0);
   --overlay: oklch(0% 0 0 / 0.8);
   --shadow: 4px 4px 0px 0px var(--border);
-  --chart-1: #00D6BD;
-  --chart-2: #0099FF;
+  --chart-1: #00C8F0;
+  --chart-2: #FF7A05;
   --chart-3: #7A83FF;
   --chart-4: #FF4D50;
   --chart-5: #FACC00;
@@ -22,16 +22,16 @@
 }
 
 .dark {
-  --background: oklch(22.65% 0.0236 198.49);
+  --background: oklch(27.11% 0.0303 225.38);
   --secondary-background: oklch(23.93% 0 0);
   --foreground: oklch(92.49% 0 0);
   --main-foreground: oklch(0% 0 0);
-  --main: #91C5FD;
+  --main: oklch(64.37% 0.1162 218.75);
   --border: oklch(0% 0 0);
   --ring: oklch(100% 0 0);
   --shadow: 4px 4px 0px 0px var(--border);
-  --chart-1: #00BDA7;
-  --chart-2: #008AE5;
+  --chart-1: #009DBD;
+  --chart-2: #EB6D00;
   --chart-3: #7A83FF;
   --chart-4: #FF6669;
   --chart-5: #E0B700;
@@ -70,67 +70,5 @@
 
   h1, h2, h3, h4, h5, h6{
     @apply font-heading;
-  }
-}
-
-@layer utilities {
-  /* Custom animations */
-  .animate-float {
-    animation: float 3s ease-in-out infinite;
-  }
-
-  .animate-marquee {
-    animation: marquee 25s linear infinite;
-  }
-
-  .animate-marquee2 {
-    animation: marquee2 25s linear infinite;
-  }
-
-  .animate-marquee-vertical {
-    animation: marquee-vertical 25s linear infinite;
-  }
-
-  @keyframes float {
-    0%, 100% {
-      transform: translateY(0px);
-    }
-    50% {
-      transform: translateY(-10px);
-    }
-  }
-
-  @keyframes marquee {
-    0% {
-      transform: translateX(100%);
-    }
-    100% {
-      transform: translateX(-100%);
-    }
-  }
-
-  @keyframes marquee2 {
-    0% {
-      transform: translateX(200%);
-    }
-    100% {
-      transform: translateX(0%);
-    }
-  }
-
-  @keyframes marquee-vertical {
-    0% {
-      transform: translateY(100%);
-    }
-    100% {
-      transform: translateY(-100%);
-    }
-  }
-
-  /* Smooth transitions */
-  .transition-all {
-    transition-property: all;
-    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
-    transition-duration: 300ms;
   }
 }

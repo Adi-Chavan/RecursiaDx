@@ -1,28 +1,40 @@
-export default function Marquee({
-  items
+import React from "react"
+import { cn } from "@/lib/utils"
+
+export function Marquee({
+  className,
+  pauseOnHover = false,
+  children,
+  vertical = false,
+  repeat = 4,
+  ...props
 }) {
   return (
     <div
-      className="relative flex w-full overflow-x-hidden border-b-2 border-t-2 border-border bg-secondary-background text-foreground font-base">
-      <div className="animate-marquee whitespace-nowrap py-12">
-        {items.map((item) => {
-          return (
-            <span key={item} className="mx-4 text-4xl">
-              {item}
-            </span>
-          );
-        })}
-      </div>
-      <div className="absolute top-0 animate-marquee2 whitespace-nowrap py-12">
-        {items.map((item) => {
-          return (
-            <span key={item} className="mx-4 text-4xl">
-              {item}
-            </span>
-          );
-        })}
-      </div>
-      {/* must have both of these in order to work */}
+      {...props}
+      className={cn(
+        "group flex overflow-hidden p-2 [--duration:40s] [--gap:1rem] [gap:var(--gap)]",
+        {
+          "flex-row": !vertical,
+          "flex-col": vertical,
+        },
+        className,
+      )}
+    >
+      {Array(repeat)
+        .fill(0)
+        .map((_, i) => (
+          <div
+            key={i}
+            className={cn("flex shrink-0 justify-around [gap:var(--gap)]", {
+              "animate-marquee flex-row": !vertical,
+              "animate-marquee-vertical flex-col": vertical,
+              "group-hover:[animation-play-state:paused]": pauseOnHover,
+            })}
+          >
+            {children}
+          </div>
+        ))}
     </div>
-  );
+  )
 }

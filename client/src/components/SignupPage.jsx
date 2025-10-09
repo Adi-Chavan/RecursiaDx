@@ -64,12 +64,10 @@ export function SignupPage({ onSignup, onBackToHome, onGoToLogin }) {
   const [errors, setErrors] = useState({})
 
   const roles = [
-    { value: 'medical-technologist', label: 'Medical Technologist', icon: Users },
+    { value: 'technician', label: 'Medical Technologist', icon: Users },
     { value: 'pathologist', label: 'Pathologist', icon: User },
-    { value: 'lab-director', label: 'Laboratory Director', icon: Building2 },
-    { value: 'resident', label: 'Resident/Fellow', icon: Award },
-    { value: 'administrator', label: 'Lab Administrator', icon: Shield },
-    { value: 'other', label: 'Other Healthcare Professional', icon: User }
+    { value: 'administrator', label: 'Laboratory Director/Administrator', icon: Building2 },
+    { value: 'resident', label: 'Resident/Fellow', icon: Award }
   ]
 
   const countries = [

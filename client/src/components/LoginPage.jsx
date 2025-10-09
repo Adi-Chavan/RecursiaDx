@@ -19,9 +19,7 @@ import {
   Shield,
   CheckCircle2,
   AlertCircle,
-  Loader2,
-  Users,
-  Building2
+  Loader2
 } from 'lucide-react'
 
 export function LoginPage({ onLogin, onBackToHome, onGoToSignup }) {
@@ -32,31 +30,7 @@ export function LoginPage({ onLogin, onBackToHome, onGoToSignup }) {
     rememberMe: false
   })
   const [showPassword, setShowPassword] = useState(false)
-  const [selectedRole, setSelectedRole] = useState('technician')
 
-  const userRoles = [
-    {
-      id: 'technician',
-      title: 'Medical Technologist',
-      description: 'Lab technicians and medical technologists',
-      icon: Users,
-      credentials: { email: 'tech@recursiadx.com', password: 'Demo123!' }
-    },
-    {
-      id: 'pathologist', 
-      title: 'Pathologist',
-      description: 'Board-certified pathologists and physicians',
-      icon: Building2,
-      credentials: { email: 'pathologist@recursiadx.com', password: 'Demo123!' }
-    },
-    {
-      id: 'admin',
-      title: 'Lab Administrator',
-      description: 'Lab managers and administrators',
-      icon: Shield,
-      credentials: { email: 'admin@recursiadx.com', password: 'Demo123!' }
-    }
-  ]
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({
@@ -65,15 +39,7 @@ export function LoginPage({ onLogin, onBackToHome, onGoToSignup }) {
     }))
   }
 
-  const handleDemoLogin = (role) => {
-    const roleData = userRoles.find(r => r.id === role)
-    setFormData(prev => ({
-      ...prev,
-      email: roleData.credentials.email,
-      password: roleData.credentials.password
-    }))
-    setSelectedRole(role)
-  }
+
 
   const handleSubmit = async (e) => {
     e.preventDefault()
@@ -136,50 +102,7 @@ export function LoginPage({ onLogin, onBackToHome, onGoToSignup }) {
             </p>
           </div>
 
-          {/* Demo Credentials */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg">Demo Access</CardTitle>
-              <CardDescription>
-                Try RecursiaDx with these demo accounts
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {userRoles.map((role) => {
-                  const Icon = role.icon
-                  return (
-                    <div
-                      key={role.id}
-                      className={`p-3 rounded-lg border cursor-pointer transition-all ${
-                        selectedRole === role.id 
-                          ? 'border-primary bg-primary/5' 
-                          : 'border-gray-200 hover:border-primary/50'
-                      }`}
-                      onClick={() => handleDemoLogin(role.id)}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Icon className="h-5 w-5 text-primary" />
-                        <div className="flex-1">
-                          <div className="font-medium text-sm">{role.title}</div>
-                          <div className="text-xs text-muted-foreground">{role.description}</div>
-                        </div>
-                        <Badge variant="outline" className="text-xs">
-                          Demo
-                        </Badge>
-                      </div>
-                      {selectedRole === role.id && (
-                        <div className="mt-2 pt-2 border-t text-xs text-muted-foreground">
-                          <div>Email: {role.credentials.email}</div>
-                          <div>Password: {role.credentials.password}</div>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </CardContent>
-          </Card>
+
 
           {/* Trust Indicators */}
           <div className="mt-8 grid grid-cols-3 gap-4 text-center">
@@ -299,24 +222,7 @@ export function LoginPage({ onLogin, onBackToHome, onGoToSignup }) {
                 </p>
               </div>
 
-              {/* Mobile Demo Access */}
-              <div className="lg:hidden mt-6 pt-6 border-t">
-                <h4 className="text-sm font-medium mb-3">Quick Demo Access</h4>
-                <div className="grid gap-2">
-                  {userRoles.map((role) => (
-                    <Button
-                      key={role.id}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDemoLogin(role.id)}
-                      className="justify-start"
-                    >
-                      <role.icon className="h-4 w-4 mr-2" />
-                      {role.title}
-                    </Button>
-                  ))}
-                </div>
-              </div>
+
             </CardContent>
           </Card>
 

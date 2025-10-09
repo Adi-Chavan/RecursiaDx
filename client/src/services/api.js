@@ -65,11 +65,11 @@ export const authAPI = {
       name: `${userData.firstName} ${userData.lastName}`.trim(),
       email: userData.email,
       password: userData.password,
-      role: userData.role === 'medical-technologist' ? 'Lab Technician' : 
+      confirmPassword: userData.confirmPassword,
+      role: userData.role === 'technician' ? 'Technician' : 
             userData.role === 'pathologist' ? 'Pathologist' :
-            userData.role === 'lab-director' ? 'Admin' :
-            userData.role === 'resident' ? 'Resident' :
-            userData.role === 'administrator' ? 'Admin' : 'Lab Technician',
+            userData.role === 'administrator' ? 'Administrator' :
+            userData.role === 'resident' ? 'Resident' : 'Technician',
       department: userData.department || userData.institution,
       licenseNumber: userData.license,
       phone: userData.phone

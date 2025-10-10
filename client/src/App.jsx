@@ -10,6 +10,7 @@ import { WSIViewer } from './components/WSIViewer'
 import { AnalysisDashboard } from './components/AnalysisDashboard'
 import { ResultsReview } from './components/ResultsReview'
 import { ReportGeneration } from './components/ReportGeneration'
+import { MLDemo } from './components/MLDemo'
 import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
 
@@ -18,6 +19,7 @@ const AppContent = () => {
   // Application state
   const [currentPage, setCurrentPage] = useState('home') // home, login, signup, dashboard
   const [activeTab, setActiveTab] = useState('upload')
+  const [currentSample, setCurrentSample] = useState(null) // Store current sample data
 
   // Update page based on authentication status
   useEffect(() => {
@@ -41,6 +43,7 @@ const AppContent = () => {
     await logout()
     setCurrentPage('home')
     setActiveTab('upload')
+    setCurrentSample(null) // Clear sample data on logout
   }
 
   // Show loading screen while checking authentication
@@ -68,26 +71,46 @@ const AppContent = () => {
   const renderDashboardContent = () => {
     switch (activeTab) {
       case 'upload':
-        return <SampleUpload onNext={() => setActiveTab('viewer')} />
+        return <SampleUpload 
+          onNext={() => setActiveTab('viewer')} 
+          onSampleCreated={(sample) => {
+            console.log('🔍 App: Received sample from upload:', sample)
+            setCurrentSample(sample)
+          }}
+        />
       case 'viewer':
-        return <WSIViewer onNext={() => setActiveTab('analysis')} />
+        console.log('🔍 App: Passing sample to WSI viewer:', currentSample)
+        return <WSIViewer 
+          onNext={() => setActiveTab('analysis')} 
+          sample={currentSample}
+        />
       case 'analysis':
       case 'analysis-blood':
       case 'analysis-tissue':
         return <AnalysisDashboard 
           onNext={() => setActiveTab('review')} 
           analysisType={activeTab.includes('blood') ? 'blood' : activeTab.includes('tissue') ? 'tissue' : 'general'}
+          sample={currentSample}
         />
+      case 'ml-demo':
+        return <MLDemo />
       case 'review':
-        return <ResultsReview onNext={() => setActiveTab('report')} />
+        return <ResultsReview 
+          onNext={() => setActiveTab('report')} 
+          sample={currentSample}
+        />
       case 'report':
       case 'report-patient':
       case 'report-lab':
         return <ReportGeneration 
           reportType={activeTab.includes('patient') ? 'patient' : activeTab.includes('lab') ? 'lab' : 'general'}
+          sample={currentSample}
         />
       default:
-        return <SampleUpload onNext={() => setActiveTab('viewer')} />
+        return <SampleUpload 
+          onNext={() => setActiveTab('viewer')} 
+          onSampleCreated={(sample) => setCurrentSample(sample)}
+        />
     }
   }
 

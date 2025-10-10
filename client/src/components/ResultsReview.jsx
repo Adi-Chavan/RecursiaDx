@@ -24,18 +24,92 @@ import {
   FileCheck,
   MoreVertical,
   Flag,
-  Undo2
+  Undo2,
+  Brain
 } from 'lucide-react'
 
-export function ResultsReview({ onNext }) {
+export function ResultsReview({ onNext, sample }) {
   const [verificationStatus, setVerificationStatus] = useState({})
   const [corrections, setCorrections] = useState({})
   const [comments, setComments] = useState({})
   const [overallApproval, setOverallApproval] = useState(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Mock AI results for verification
-  const aiResults = [
+  // Extract real AI results from sample data or use mock data as fallback
+  const extractAIResults = () => {
+    if (!sample || !sample.images || sample.images.length === 0) {
+      return getMockResults() // Fallback to mock data
+    }
+
+    const results = []
+    sample.images.forEach((image, index) => {
+      if (image.mlAnalysis) {
+        const analysis = image.mlAnalysis
+        
+        // Tumor Detection Result
+        results.push({
+          id: `tumor_${index}`,
+          category: 'Pathology Analysis',
+          test: 'Tumor Detection',
+          aiValue: analysis.is_tumor ? 'Tumor detected' : 'No tumor detected',
+          aiStatus: analysis.is_tumor ? 'Abnormal' : 'Normal',
+          confidence: (analysis.confidence * 100).toFixed(1),
+          needsReview: analysis.confidence < 0.9, // Flag for review if confidence < 90%
+          flagReason: analysis.confidence < 0.9 ? 'Low confidence score' : null,
+          imageIndex: index,
+          imageName: image.name || `Image ${index + 1}`,
+          riskLevel: analysis.risk_level,
+          detectedFeatures: analysis.detected_features || []
+        })
+
+        // Tissue Architecture Analysis
+        if (analysis.probabilities) {
+          results.push({
+            id: `tissue_${index}`,
+            category: 'Tissue Analysis',
+            test: 'Tissue Architecture',
+            aiValue: analysis.probabilities.tumor > 0.5 ? 
+              `${(analysis.probabilities.tumor * 100).toFixed(1)}% tumor probability` :
+              `${(analysis.probabilities.normal * 100).toFixed(1)}% normal tissue`,
+            aiStatus: analysis.probabilities.tumor > 0.5 ? 'Abnormal' : 'Normal',
+            confidence: (analysis.confidence * 100).toFixed(1),
+            needsReview: analysis.probabilities.tumor > 0.3 && analysis.probabilities.tumor < 0.7, // Borderline cases
+            flagReason: analysis.probabilities.tumor > 0.3 && analysis.probabilities.tumor < 0.7 ? 
+              'Borderline tumor probability' : null,
+            imageIndex: index,
+            imageName: image.name || `Image ${index + 1}`,
+            tumorProbability: analysis.probabilities.tumor,
+            normalProbability: analysis.probabilities.normal,
+            detectedFeatures: analysis.detected_features || []
+          })
+        }
+
+        // Risk Assessment
+        if (analysis.risk_level) {
+          results.push({
+            id: `risk_${index}`,
+            category: 'Risk Assessment',
+            test: 'Clinical Risk Level',
+            aiValue: analysis.risk_level,
+            aiStatus: analysis.risk_level.includes('High') ? 'High Risk' : 
+                     analysis.risk_level.includes('Moderate') ? 'Moderate Risk' : 'Low Risk',
+            confidence: (analysis.confidence * 100).toFixed(1),
+            needsReview: analysis.risk_level.includes('High') || analysis.risk_level.includes('Moderate'),
+            flagReason: analysis.risk_level.includes('High') ? 'High risk requires verification' : 
+                       analysis.risk_level.includes('Moderate') ? 'Moderate risk - manual review recommended' : null,
+            imageIndex: index,
+            imageName: image.name || `Image ${index + 1}`,
+            detectedFeatures: analysis.detected_features || []
+          })
+        }
+      }
+    })
+
+    return results.length > 0 ? results : getMockResults()
+  }
+
+  // Mock AI results for verification (fallback)
+  const getMockResults = () => [
     {
       id: 'blood_001',
       category: 'Blood Analysis',
@@ -43,7 +117,8 @@ export function ResultsReview({ onNext }) {
       aiValue: '13.8 g/dL',
       aiStatus: 'Normal',
       confidence: 96.8,
-      needsReview: false
+      needsReview: false,
+      detectedFeatures: []
     },
     {
       id: 'blood_002',
@@ -52,7 +127,8 @@ export function ResultsReview({ onNext }) {
       aiValue: '8.9 thousand/µL',
       aiStatus: 'Normal',
       confidence: 94.2,
-      needsReview: false
+      needsReview: false,
+      detectedFeatures: []
     },
     {
       id: 'blood_003',
@@ -62,7 +138,8 @@ export function ResultsReview({ onNext }) {
       aiStatus: 'Normal',
       confidence: 87.5,
       needsReview: true,
-      flagReason: 'Borderline low confidence'
+      flagReason: 'Borderline low confidence',
+      detectedFeatures: []
     },
     {
       id: 'tissue_001',
@@ -71,7 +148,8 @@ export function ResultsReview({ onNext }) {
       aiValue: 'No malignant cells detected',
       aiStatus: 'Normal',
       confidence: 97.3,
-      needsReview: false
+      needsReview: false,
+      detectedFeatures: ['Normal cell morphology', 'Regular tissue pattern']
     },
     {
       id: 'tissue_002',
@@ -81,9 +159,13 @@ export function ResultsReview({ onNext }) {
       aiStatus: 'Normal',
       confidence: 92.1,
       needsReview: true,
-      flagReason: 'Manual verification requested'
+      flagReason: 'Manual verification requested',
+      detectedFeatures: ['Organized cell structure']
     }
   ]
+
+  // Get AI results from real data or fallback to mock
+  const aiResults = extractAIResults()
 
   const verificationHistory = [
     {
@@ -200,6 +282,69 @@ export function ResultsReview({ onNext }) {
         </CardContent>
       </Card>
 
+      {/* Sample Analysis Summary */}
+      {sample && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Brain className="h-5 w-5" />
+              Sample Analysis Summary
+            </CardTitle>
+            <CardDescription>
+              Overview of AI analysis results for current sample
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div className="text-center p-4 bg-blue-50 rounded-lg">
+                <div className="text-2xl font-bold text-blue-600">
+                  {sample.images ? sample.images.length : 0}
+                </div>
+                <div className="text-sm text-blue-600">Total Images</div>
+              </div>
+              <div className="text-center p-4 bg-green-50 rounded-lg">
+                <div className="text-2xl font-bold text-green-600">
+                  {sample.images ? sample.images.filter(img => img.mlAnalysis).length : 0}
+                </div>
+                <div className="text-sm text-green-600">Analyzed Images</div>
+              </div>
+              <div className="text-center p-4 bg-red-50 rounded-lg">
+                <div className="text-2xl font-bold text-red-600">
+                  {sample.images ? sample.images.filter(img => img.mlAnalysis && img.mlAnalysis.is_tumor).length : 0}
+                </div>
+                <div className="text-sm text-red-600">Tumor Detected</div>
+              </div>
+              <div className="text-center p-4 bg-yellow-50 rounded-lg">
+                <div className="text-2xl font-bold text-yellow-600">
+                  {aiResults.filter(r => r.needsReview).length}
+                </div>
+                <div className="text-sm text-yellow-600">Need Review</div>
+              </div>
+            </div>
+            
+            {sample.patientInfo && (
+              <div className="mt-4 p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-semibold mb-2">Patient Information</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                  {sample.patientInfo.name && (
+                    <div><span className="text-muted-foreground">Name:</span> {sample.patientInfo.name}</div>
+                  )}
+                  {sample.patientInfo.age && (
+                    <div><span className="text-muted-foreground">Age:</span> {sample.patientInfo.age}</div>
+                  )}
+                  {sample.patientInfo.gender && (
+                    <div><span className="text-muted-foreground">Gender:</span> {sample.patientInfo.gender}</div>
+                  )}
+                  {sample.uploadedAt && (
+                    <div><span className="text-muted-foreground">Uploaded:</span> {new Date(sample.uploadedAt).toLocaleDateString()}</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
       <Tabs defaultValue="verification" className="w-full">
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="verification">Result Verification</TabsTrigger>
@@ -235,7 +380,7 @@ export function ResultsReview({ onNext }) {
                           </div>
                           
                           <h4 className="font-semibold">{result.test}</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mt-2">
                             <div>
                               <p className="text-sm text-muted-foreground">AI Result</p>
                               <p className="font-medium">{result.aiValue}</p>
@@ -250,6 +395,12 @@ export function ResultsReview({ onNext }) {
                                 {result.confidence}%
                               </span>
                             </div>
+                            {result.imageName && (
+                              <div>
+                                <p className="text-sm text-muted-foreground">Source Image</p>
+                                <p className="font-medium text-blue-600">{result.imageName}</p>
+                              </div>
+                            )}
                           </div>
                           
                           {result.flagReason && (
@@ -259,6 +410,44 @@ export function ResultsReview({ onNext }) {
                                 <strong>Flag Reason:</strong> {result.flagReason}
                               </AlertDescription>
                             </Alert>
+                          )}
+                          
+                          {/* Additional information for tumor detection */}
+                          {result.tumorProbability !== undefined && (
+                            <div className="mt-3 p-3 bg-blue-50 rounded-lg">
+                              <p className="text-sm font-medium text-blue-900">Detailed Probabilities:</p>
+                              <div className="flex gap-4 mt-1 text-sm">
+                                <span className="text-red-600">
+                                  Tumor: {(result.tumorProbability * 100).toFixed(1)}%
+                                </span>
+                                <span className="text-green-600">
+                                  Normal: {(result.normalProbability * 100).toFixed(1)}%
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                          
+                          {/* Risk level and detected features */}
+                          {result.riskLevel && (
+                            <div className="mt-2 flex items-center gap-2">
+                              <Badge variant={result.riskLevel.includes('High') ? 'destructive' : 
+                                           result.riskLevel.includes('Moderate') ? 'secondary' : 'outline'}>
+                                {result.riskLevel}
+                              </Badge>
+                            </div>
+                          )}
+                          
+                          {result.detectedFeatures && Array.isArray(result.detectedFeatures) && result.detectedFeatures.length > 0 && (
+                            <div className="mt-2">
+                              <p className="text-xs text-muted-foreground">Detected Features:</p>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {result.detectedFeatures.map((feature, idx) => (
+                                  <Badge key={idx} variant="outline" className="text-xs">
+                                    {feature}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
                           )}
                         </div>
 

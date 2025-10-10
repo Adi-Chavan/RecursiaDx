@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -7,6 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
+import { Progress } from '@/components/ui/progress'
 
 import { toast } from 'sonner'
 import { 
@@ -25,15 +26,93 @@ import {
   Shield,
   Award,
   Microscope,
-  Stethoscope
+  Stethoscope,
+  RefreshCw,
+  Target
 } from 'lucide-react'
 
-export function ReportGeneration() {
+export function ReportGeneration({ sample, onNext }) {
   const [reportStatus, setReportStatus] = useState('generating')
-  const [selectedTemplate, setSelectedTemplate] = useState('comprehensive')
+  const [selectedTemplate, setSelectedTemplate] = useState('Preliminary')
+  const [reportData, setReportData] = useState(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generationProgress, setGenerationProgress] = useState(0)
 
-  // Mock report data
-  const patientInfo = {
+  // Generate report when component mounts or sample changes
+  useEffect(() => {
+    if (sample?._id && !reportData) {
+      generateReport();
+    }
+  }, [sample, reportData]);
+
+  const generateReport = async () => {
+    if (!sample?._id) {
+      toast.error('No sample selected for report generation');
+      return;
+    }
+
+    setIsGenerating(true);
+    setReportStatus('generating');
+    setGenerationProgress(0);
+
+    try {
+      // Simulate progress
+      const progressInterval = setInterval(() => {
+        setGenerationProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval);
+            return 90;
+          }
+          return prev + Math.random() * 20;
+        });
+      }, 500);
+
+      const response = await fetch(`http://localhost:5001/api/reports/generate/${sample._id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          reportType: selectedTemplate,
+          includeImages: true
+        })
+      });
+
+      clearInterval(progressInterval);
+      setGenerationProgress(100);
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setReportData(data.data);
+        setReportStatus('completed');
+        toast.success('Report generated successfully');
+      } else {
+        throw new Error(response.data.message || 'Failed to generate report');
+      }
+    } catch (error) {
+      console.error('Report generation failed:', error);
+      setReportStatus('error');
+      toast.error(error.response?.data?.message || 'Failed to generate report');
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
+  // Use real sample data if available, otherwise fallback to mock data
+  const patientInfo = sample ? {
+    id: sample.patient?.patientId || sample.sampleId,
+    name: sample.patient?.name || 'Unknown Patient',
+    age: sample.patient?.age || 'Unknown',
+    gender: sample.patient?.gender || 'Unknown',
+    bloodGroup: sample.patient?.bloodGroup || 'Unknown',
+    phone: sample.patient?.contactNumber || 'Not provided',
+    email: sample.patient?.email || 'Not provided',
+    physician: sample.clinicalInfo?.orderingPhysician || 'Unknown',
+    orderDate: sample.createdAt ? new Date(sample.createdAt).toISOString().split('T')[0] : 'Unknown',
+    sampleDate: sample.sampleInfo?.collectionDate ? new Date(sample.sampleInfo.collectionDate).toISOString().split('T')[0] : 'Unknown',
+    reportDate: new Date().toISOString().split('T')[0]
+  } : {
     id: 'PT-2024-001',
     name: 'John Anderson',
     age: 45,
@@ -56,45 +135,98 @@ export function ReportGeneration() {
     accreditation: 'CAP/CLIA Certified'
   }
 
-  const testResults = [
-    {
-      category: 'Hematology',
-      tests: [
-        { name: 'Hemoglobin', result: '13.8', unit: 'g/dL', range: '12.0-15.5', status: 'Normal' },
-        { name: 'Hematocrit', result: '41.2', unit: '%', range: '36.0-46.0', status: 'Normal' },
-        { name: 'RBC Count', result: '4.2', unit: 'million/µL', range: '3.8-5.2', status: 'Normal' },
-        { name: 'WBC Count', result: '8.9', unit: 'thousand/µL', range: '4.0-11.0', status: 'Normal' },
-        { name: 'Platelet Count', result: '180', unit: 'thousand/µL', range: '150-450', status: 'Normal' }
-      ]
-    },
-    {
-      category: 'Chemistry',
-      tests: [
-        { name: 'Glucose', result: '95', unit: 'mg/dL', range: '70-100', status: 'Normal' },
-        { name: 'Blood Urea Nitrogen', result: '15', unit: 'mg/dL', range: '7-20', status: 'Normal' }
-      ]
-    },
-    {
-      category: 'Pathology',
-      tests: [
-        { name: 'Tissue Biopsy', result: 'No malignant cells detected', unit: '', range: 'Normal cellular architecture', status: 'Normal' },
-        { name: 'Morphological Assessment', result: 'Normal tissue organization', unit: '', range: 'Regular cellular pattern', status: 'Normal' }
-      ]
-    }
-  ]
+  // Generate test results from real ML analysis or use mock data
+  const testResults = (() => {
+    if (reportData?.aiAnalysis) {
+      const aiAnalysis = reportData.aiAnalysis;
+      const results = [
+        {
+          category: 'AI Analysis Results',
+          tests: [
+            { 
+              name: 'Images Processed', 
+              result: (aiAnalysis.totalImages || 0).toString(), 
+              unit: 'images', 
+              range: 'All images analyzed', 
+              status: 'Completed' 
+            },
+            { 
+              name: 'Malignant Detections', 
+              result: (aiAnalysis.malignantDetections || 0).toString(), 
+              unit: 'detections', 
+              range: '0 (Normal)', 
+              status: (aiAnalysis.malignantDetections || 0) > 0 ? 'Abnormal' : 'Normal' 
+            },
+            { 
+              name: 'Average Confidence', 
+              result: ((aiAnalysis.averageConfidence || 0) * 100).toFixed(1), 
+              unit: '%', 
+              range: '>80% (Reliable)', 
+              status: (aiAnalysis.averageConfidence || 0) > 0.8 ? 'Reliable' : 'Review Required' 
+            },
+            { 
+              name: 'Risk Assessment', 
+              result: aiAnalysis.overallRisk || 'Unknown', 
+              unit: '', 
+              range: 'Low-Moderate-High', 
+              status: aiAnalysis.overallRisk === 'Low' ? 'Normal' : 'Attention Required' 
+            }
+          ]
+        }
+      ];
 
-  const aiAnalysis = {
+      if (aiAnalysis.detectedFeatures?.length > 0) {
+        results.push({
+          category: 'Detected Features',
+          tests: aiAnalysis.detectedFeatures.map(feature => ({
+            name: feature,
+            result: 'Detected',
+            unit: '',
+            range: 'Present/Absent',
+            status: 'Present'
+          }))
+        });
+      }
+
+      return results;
+    }
+
+    // Fallback mock data
+    return [
+      {
+        category: 'Hematology',
+        tests: [
+          { name: 'Hemoglobin', result: '13.8', unit: 'g/dL', range: '12.0-15.5', status: 'Normal' },
+          { name: 'Hematocrit', result: '41.2', unit: '%', range: '36.0-46.0', status: 'Normal' },
+          { name: 'RBC Count', result: '4.2', unit: 'million/µL', range: '3.8-5.2', status: 'Normal' },
+          { name: 'WBC Count', result: '8.9', unit: 'thousand/µL', range: '4.0-11.0', status: 'Normal' },
+          { name: 'Platelet Count', result: '180', unit: 'thousand/µL', range: '150-450', status: 'Normal' }
+        ]
+      },
+      {
+        category: 'Pathology',
+        tests: [
+          { name: 'Tissue Biopsy', result: 'No malignant cells detected', unit: '', range: 'Normal cellular architecture', status: 'Normal' },
+          { name: 'Morphological Assessment', result: 'Normal tissue organization', unit: '', range: 'Regular cellular pattern', status: 'Normal' }
+        ]
+      }
+    ];
+  })();
+
+  const aiAnalysis = reportData?.aiAnalysis || {
+    interpretation: 'AI analysis pending - no data available',
+    confidence: '0%',
+    totalImages: 0,
+    processedImages: 0,
     bloodSmear: {
-      cellCounts: '4.2M RBC, 8.9K WBC, 180K PLT per µL',
-      morphology: 'Normal cellular morphology observed',
-      abnormalities: 'None detected',
-      confidence: '96.8%'
+      cellCounts: 'Data not available',
+      morphology: 'Analysis pending',
+      confidence: '0%'
     },
     tissueBiopsy: {
-      architecture: 'Normal tissue architecture maintained',
-      cellularAtypia: 'No cellular atypia identified', 
-      malignancy: 'No evidence of malignancy',
-      confidence: '97.3%'
+      architecture: 'Analysis pending',
+      malignancy: 'No data available',
+      confidence: '0%'
     }
   }
 
@@ -111,20 +243,22 @@ export function ReportGeneration() {
     signature: 'Reviewed and approved on ' + new Date().toLocaleString()
   }
 
-  const generateReport = () => {
-    setReportStatus('generating')
-    setTimeout(() => {
-      setReportStatus('ready')
-      toast.success("Pathology report generated successfully!")
-    }, 2000)
-  }
-
   const downloadReport = (format) => {
-    toast.success(`Downloading report as ${format.toUpperCase()}...`)
+    if (reportData?.reportId) {
+      window.open(`/api/reports/${reportData.reportId}/download?format=${format}`);
+      toast.success(`Downloading report as ${format.toUpperCase()}...`);
+    } else {
+      toast.error('No report available for download');
+    }
   }
 
   const shareReport = () => {
-    toast.success("Report sharing options opened")
+    if (reportData?.reportId) {
+      navigator.clipboard.writeText(`${window.location.origin}/reports/${reportData.reportId}`);
+      toast.success("Report link copied to clipboard!");
+    } else {
+      toast.error('No report available to share');
+    }
   }
 
   const sendReport = () => {
@@ -132,7 +266,7 @@ export function ReportGeneration() {
   }
 
   React.useEffect(() => {
-    generateReport()
+    // generateReport is now called from the main useEffect above
   }, [])
 
   return (
@@ -146,9 +280,75 @@ export function ReportGeneration() {
         </div>
         <Badge variant="outline" className="text-sm">
           <FileText className="h-4 w-4 mr-2" />
-          {reportStatus === 'generating' ? 'Generating...' : 'Report Ready'}
+          {reportStatus === 'generating' ? 'Generating...' : 
+           reportStatus === 'completed' ? 'Report Ready' :
+           reportStatus === 'error' ? 'Generation Failed' : 'Processing...'}
         </Badge>
       </div>
+
+      {/* Report Generation Progress */}
+      {isGenerating && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <RefreshCw className="h-5 w-5 animate-spin" />
+              Generating Report...
+            </CardTitle>
+            <CardDescription>
+              Processing ML analysis results and generating comprehensive pathology report
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <Progress value={generationProgress} className="w-full" />
+              <div className="flex items-center justify-between text-sm text-muted-foreground">
+                <span>Progress: {generationProgress.toFixed(0)}%</span>
+                <span>
+                  {generationProgress < 30 ? 'Analyzing images...' :
+                   generationProgress < 60 ? 'Processing ML results...' :
+                   generationProgress < 90 ? 'Generating report...' : 'Finalizing...'}
+                </span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Show error if generation failed */}
+      {reportStatus === 'error' && (
+        <Alert variant="destructive">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertTitle>Report Generation Failed</AlertTitle>
+          <AlertDescription>
+            There was an error generating the report. Please try again or contact support.
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-4"
+              onClick={generateReport}
+              disabled={isGenerating}
+            >
+              <RefreshCw className="h-4 w-4 mr-2" />
+              Retry
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Show success message and AI analysis summary */}
+      {reportStatus === 'completed' && reportData && (
+        <Alert>
+          <CheckCircle2 className="h-4 w-4" />
+          <AlertTitle>Report Generated Successfully</AlertTitle>
+          <AlertDescription>
+            Report ID: <strong>{reportData.reportId}</strong> | 
+            Generated: {new Date(reportData.generatedAt).toLocaleString()} |
+            AI Risk Assessment: <Badge variant={reportData.aiAnalysis?.overallRisk === 'High' ? 'destructive' : 'secondary'}>
+              {reportData.aiAnalysis?.overallRisk || 'Unknown'}
+            </Badge>
+          </AlertDescription>
+        </Alert>
+      )}
 
       {/* Report Actions */}
       <Card>
@@ -371,15 +571,15 @@ export function ReportGeneration() {
                   <CardContent className="text-sm space-y-2">
                     <div>
                       <span className="font-medium">Cell Counts:</span>
-                      <p className="text-muted-foreground">{aiAnalysis.bloodSmear.cellCounts}</p>
+                      <p className="text-muted-foreground">{aiAnalysis.bloodSmear?.cellCounts || 'Data not available'}</p>
                     </div>
                     <div>
                       <span className="font-medium">Morphology:</span>
-                      <p className="text-muted-foreground">{aiAnalysis.bloodSmear.morphology}</p>
+                      <p className="text-muted-foreground">{aiAnalysis.bloodSmear?.morphology || 'Analysis pending'}</p>
                     </div>
                     <div>
                       <span className="font-medium">AI Confidence:</span>
-                      <Badge variant="outline">{aiAnalysis.bloodSmear.confidence}</Badge>
+                      <Badge variant="outline">{aiAnalysis.bloodSmear?.confidence || '0%'}</Badge>
                     </div>
                   </CardContent>
                 </Card>
@@ -391,15 +591,15 @@ export function ReportGeneration() {
                   <CardContent className="text-sm space-y-2">
                     <div>
                       <span className="font-medium">Architecture:</span>
-                      <p className="text-muted-foreground">{aiAnalysis.tissueBiopsy.architecture}</p>
+                      <p className="text-muted-foreground">{aiAnalysis.tissueBiopsy?.architecture || 'Analysis pending'}</p>
                     </div>
                     <div>
                       <span className="font-medium">Malignancy:</span>
-                      <p className="text-muted-foreground">{aiAnalysis.tissueBiopsy.malignancy}</p>
+                      <p className="text-muted-foreground">{aiAnalysis.tissueBiopsy?.malignancy || 'No data available'}</p>
                     </div>
                     <div>
                       <span className="font-medium">AI Confidence:</span>
-                      <Badge variant="outline">{aiAnalysis.tissueBiopsy.confidence}</Badge>
+                      <Badge variant="outline">{aiAnalysis.tissueBiopsy?.confidence || '0%'}</Badge>
                     </div>
                   </CardContent>
                 </Card>

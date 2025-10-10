@@ -22,7 +22,7 @@ import {
   Target
 } from 'lucide-react'
 
-export function WSIViewer({ onNext }) {
+export function WSIViewer({ onNext, sample }) {
   const [selectedImage, setSelectedImage] = useState(null)
   const [zoomLevel, setZoomLevel] = useState(1)
   const [position, setPosition] = useState({ x: 0, y: 0 })
@@ -31,8 +31,49 @@ export function WSIViewer({ onNext }) {
   const [annotations, setAnnotations] = useState([])
   const canvasRef = useRef(null)
 
-  // Mock WSI data
-  const wsiImages = [
+  // Debug: Log sample data
+  console.log('🔍 WSIViewer received sample:', sample)
+  console.log('🔍 Sample images:', sample?.images)
+  
+  // Alert for debugging in browser
+  if (sample) {
+    console.log('✅ WSI Viewer has sample data')
+    if (sample.images && sample.images.length > 0) {
+      console.log('✅ WSI Viewer has images:', sample.images.length)
+      sample.images.forEach((img, index) => {
+        console.log(`📸 Image ${index + 1}:`, {
+          url: img.url,
+          filename: img.filename,
+          hasML: !!img.mlAnalysis
+        })
+      })
+    } else {
+      console.log('❌ WSI Viewer: No images in sample')
+    }
+  } else {
+    console.log('❌ WSI Viewer: No sample data received')
+  }
+
+  // Use real sample images or mock data
+  const wsiImages = sample?.images?.length > 0 ? sample.images.map(img => {
+    console.log('🔍 Processing image:', img)
+    const imageData = {
+      id: img._id || img.filename,
+      name: img.originalName || img.filename,
+      type: sample.sampleType?.toLowerCase() || 'unknown',
+      resolution: img.magnification || 'Unknown',
+      size: `${Math.floor(Math.random() * 2048)}x${Math.floor(Math.random() * 1536)}`, // Mock size for now
+      staining: img.staining || 'H&E',
+      thumbnail: `http://localhost:5001${img.url}`,
+      fullImage: `http://localhost:5001${img.url}`,
+      analysis: img.mlAnalysis ? 'completed' : 'pending',
+      mlAnalysis: img.mlAnalysis,
+      uploadedAt: img.uploadedAt
+    }
+    console.log('🔍 Mapped image data:', imageData)
+    return imageData
+  }) : [
+    // Mock data fallback
     {
       id: 1,
       name: 'Blood_Smear_001.jpg',
@@ -379,6 +420,57 @@ export function WSIViewer({ onNext }) {
                             }}
                           />
                         ))}
+
+                        {/* ML Analysis Overlay */}
+                        {selectedImage.mlAnalysis && (
+                          <div className="absolute top-4 right-4 z-20 max-w-xs">
+                            <Card className="bg-background/95 backdrop-blur-sm">
+                              <CardHeader className="pb-2">
+                                <CardTitle className="text-sm flex items-center gap-2">
+                                  <Target className="h-4 w-4" />
+                                  AI Analysis Results
+                                </CardTitle>
+                              </CardHeader>
+                              <CardContent className="space-y-2">
+                                <div className="space-y-1">
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs text-muted-foreground">Prediction:</span>
+                                    <Badge variant={selectedImage.mlAnalysis.prediction === 'malignant' ? 'destructive' : 'secondary'}>
+                                      {selectedImage.mlAnalysis.prediction}
+                                    </Badge>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs text-muted-foreground">Confidence:</span>
+                                    <span className="text-xs font-mono">
+                                      {(selectedImage.mlAnalysis.confidence * 100).toFixed(1)}%
+                                    </span>
+                                  </div>
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-xs text-muted-foreground">Risk Score:</span>
+                                    <Badge variant={
+                                      selectedImage.mlAnalysis.riskScore > 0.7 ? 'destructive' :
+                                      selectedImage.mlAnalysis.riskScore > 0.4 ? 'default' : 'secondary'
+                                    }>
+                                      {(selectedImage.mlAnalysis.riskScore * 100).toFixed(0)}%
+                                    </Badge>
+                                  </div>
+                                  {selectedImage.mlAnalysis.detectedFeatures && (
+                                    <div>
+                                      <span className="text-xs text-muted-foreground">Features:</span>
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {selectedImage.mlAnalysis.detectedFeatures.map((feature, idx) => (
+                                          <Badge key={idx} variant="outline" className="text-xs">
+                                            {feature}
+                                          </Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

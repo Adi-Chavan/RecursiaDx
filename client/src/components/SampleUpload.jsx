@@ -9,71 +9,206 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Progress } from '@/components/ui/progress'
 import { toast } from 'sonner'
-import { Upload, User, FileImage, AlertCircle, CheckCircle2, Camera, Droplets } from 'lucide-react'
+import { Upload, User, FileImage, AlertCircle, CheckCircle2, Camera, Droplets, Brain, Loader2 } from 'lucide-react'
 
-export function SampleUpload({ onNext }) {
+export function SampleUpload({ onNext, onSampleCreated }) {
   const [patientData, setPatientData] = useState({
-    patientId: '',
-    name: '',
-    age: '',
-    gender: '',
-    symptoms: [],
-    bloodGroup: '',
-    testType: ''
+    patientInfo: {
+      patientId: '',
+      name: '',
+      age: '',
+      gender: '',
+      dateOfBirth: '',
+      contactNumber: '',
+      address: ''
+    },
+    sampleType: '',
+    specimenDetails: {
+      organ: '',
+      site: '',
+      size: '',
+      color: '',
+      consistency: ''
+    },
+    clinicalInfo: {
+      clinicalDiagnosis: '',
+      symptoms: [],
+      duration: '',
+      urgency: 'Routine'
+    },
+    collectionInfo: {
+      collectionDate: new Date().toISOString().split('T')[0],
+      collectionTime: new Date().toTimeString().split(' ')[0].substring(0, 5),
+      collectionMethod: '',
+      transportConditions: ''
+    }
   })
   
   const [uploadedFiles, setUploadedFiles] = useState([])
   const [uploadProgress, setUploadProgress] = useState(0)
+  const [isAnalyzing, setIsAnalyzing] = useState(false)
+  const [mlResults, setMlResults] = useState(null)
+  const [analysisProgress, setAnalysisProgress] = useState(0)
 
   const symptoms = [
     'Fatigue', 'Fever', 'Weight Loss', 'Night Sweats', 
-    'Unusual Bleeding', 'Persistent Cough', 'Difficulty Swallowing'
+    'Unusual Bleeding', 'Persistent Cough', 'Difficulty Swallowing',
+    'Enlarged Lymph Nodes', 'Bone Pain', 'Easy Bruising'
   ]
+
+  const sampleTypes = [
+    'Blood Smear', 'Tissue Biopsy', 'Bone Marrow', 
+    'Cytology', 'Fine Needle Aspirate', 'Other'
+  ]
+
+  const handleInputChange = (section, field, value) => {
+    setPatientData(prev => ({
+      ...prev,
+      [section]: {
+        ...prev[section],
+        [field]: value
+      }
+    }))
+  }
 
   const handleSymptomChange = (symptom) => {
     setPatientData(prev => ({
       ...prev,
-      symptoms: prev.symptoms.includes(symptom) 
-        ? prev.symptoms.filter(s => s !== symptom)
-        : [...prev.symptoms, symptom]
+      clinicalInfo: {
+        ...prev.clinicalInfo,
+        symptoms: prev.clinicalInfo.symptoms.includes(symptom) 
+          ? prev.clinicalInfo.symptoms.filter(s => s !== symptom)
+          : [...prev.clinicalInfo.symptoms, symptom]
+      }
     }))
   }
 
   const handleFileUpload = (event) => {
     const files = Array.from(event.target.files)
     
-    files.forEach(file => {
-      // Simulate file upload progress
-      let progress = 0
-      const interval = setInterval(() => {
-        progress += 10
-        setUploadProgress(progress)
-        
-        if (progress >= 100) {
-          clearInterval(interval)
-          setUploadedFiles(prev => [...prev, {
-            id: Date.now() + Math.random(),
-            name: file.name,
-            size: file.size,
-            type: file.type,
-            uploadedAt: new Date().toISOString()
-          }])
-          setUploadProgress(0)
-          toast.success(`${file.name} uploaded successfully!`)
-        }
-      }, 200)
+    // Add files to upload queue
+    const newFiles = files.map(file => ({
+      id: Date.now() + Math.random(),
+      file: file,
+      name: file.name,
+      size: file.size,
+      type: file.type,
+      uploadedAt: new Date().toISOString(),
+      preview: URL.createObjectURL(file)
+    }))
+    
+    setUploadedFiles(prev => [...prev, ...newFiles])
+    toast.success(`${files.length} file(s) selected for upload`)
+  }
+
+  const removeFile = (fileId) => {
+    setUploadedFiles(prev => {
+      const updated = prev.filter(f => f.id !== fileId)
+      // Clean up preview URLs
+      const removed = prev.find(f => f.id === fileId)
+      if (removed && removed.preview) {
+        URL.revokeObjectURL(removed.preview)
+      }
+      return updated
     })
   }
 
-  const handleSubmit = () => {
-    if (!patientData.patientId || !patientData.name || uploadedFiles.length === 0) {
-      toast.error("Please fill in required fields and upload at least one file")
+  const handleSubmit = async () => {
+    // Validation
+    if (!patientData.patientInfo.patientId || !patientData.patientInfo.name || !patientData.sampleType) {
+      toast.error("Please fill in required patient information and sample type")
       return
     }
     
-    toast.success("Sample uploaded successfully! Moving to WSI Viewer...")
-    setTimeout(() => onNext(), 1500)
+    if (uploadedFiles.length === 0) {
+      toast.error("Please upload at least one image")
+      return
+    }
+    
+    setIsAnalyzing(true)
+    setAnalysisProgress(0)
+    
+    try {
+      // Prepare form data
+      const formData = new FormData()
+      
+      // Convert age to number and ensure proper data types
+      const processedPatientData = {
+        ...patientData,
+        patientInfo: {
+          ...patientData.patientInfo,
+          age: parseInt(patientData.patientInfo.age) || 0
+        }
+      }
+      
+      // Add sample data
+      formData.append('sampleData', JSON.stringify(processedPatientData))
+      
+      // Add image files
+      uploadedFiles.forEach(fileData => {
+        formData.append('images', fileData.file)
+      })
+      
+      // Submit with progress tracking
+      // Remove authentication for testing
+      
+      // Simulate progress updates
+      const progressInterval = setInterval(() => {
+        setAnalysisProgress(prev => {
+          if (prev >= 90) {
+            clearInterval(progressInterval)
+            return prev
+          }
+          return prev + 10
+        })
+      }, 500)
+      
+      const response = await fetch('http://localhost:5001/api/samples/upload-with-analysis', {
+        method: 'POST',
+        body: formData
+      })
+      
+      clearInterval(progressInterval)
+      setAnalysisProgress(100)
+      
+      if (!response.ok) {
+        let errorMessage = 'Upload failed'
+        try {
+          const errorData = await response.json()
+          errorMessage = errorData.message || errorMessage
+        } catch (e) {
+          errorMessage = `HTTP ${response.status}: ${response.statusText}`
+        }
+        throw new Error(errorMessage)
+      }
+
+      const result = await response.json()
+      console.log('✅ Upload result:', result)
+      
+      // Store results for next components
+      setMlResults(result)
+      
+      toast.success("Sample uploaded and analyzed successfully!")
+      
+      // Pass sample data to parent component - fix: use result.data.sample
+      if (onSampleCreated) {
+        console.log('🔍 SampleUpload: Passing sample to parent:', result.data.sample)
+        onSampleCreated(result.data.sample)
+      }
+      
+      setTimeout(() => {
+        setIsAnalyzing(false)
+        onNext()
+      }, 1000)
+      
+    } catch (error) {
+      console.error('Upload error:', error)
+      setIsAnalyzing(false)
+      setAnalysisProgress(0)
+      toast.error(error.message || 'Failed to upload sample')
+    }
   }
 
   return (
@@ -120,8 +255,8 @@ export function SampleUpload({ onNext }) {
                   <Input
                     id="patientId"
                     placeholder="e.g., PT-2024-001"
-                    value={patientData.patientId}
-                    onChange={(e) => setPatientData(prev => ({...prev, patientId: e.target.value}))}
+                    value={patientData.patientInfo.patientId}
+                    onChange={(e) => handleInputChange('patientInfo', 'patientId', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
@@ -129,30 +264,30 @@ export function SampleUpload({ onNext }) {
                   <Input
                     id="name"
                     placeholder="Patient full name"
-                    value={patientData.name}
-                    onChange={(e) => setPatientData(prev => ({...prev, name: e.target.value}))}
+                    value={patientData.patientInfo.name}
+                    onChange={(e) => handleInputChange('patientInfo', 'name', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="age">Age</Label>
+                  <Label htmlFor="age">Age *</Label>
                   <Input
                     id="age"
                     type="number"
                     placeholder="25"
-                    value={patientData.age}
-                    onChange={(e) => setPatientData(prev => ({...prev, age: e.target.value}))}
+                    value={patientData.patientInfo.age}
+                    onChange={(e) => handleInputChange('patientInfo', 'age', e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label>Gender</Label>
-                  <Select onValueChange={(value) => setPatientData(prev => ({...prev, gender: value}))}>
+                  <Label>Gender *</Label>
+                  <Select onValueChange={(value) => handleInputChange('patientInfo', 'gender', value)}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select gender" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="male">Male</SelectItem>
-                      <SelectItem value="female">Female</SelectItem>
-                      <SelectItem value="other">Other</SelectItem>
+                      <SelectItem value="Male">Male</SelectItem>
+                      <SelectItem value="Female">Female</SelectItem>
+                      <SelectItem value="Other">Other</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -190,13 +325,36 @@ export function SampleUpload({ onNext }) {
               </div>
 
               <div className="space-y-3">
+                <Label>Sample Type *</Label>
+                <Select onValueChange={(value) => setPatientData(prev => ({...prev, sampleType: value}))}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select sample type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {sampleTypes.map(type => (
+                      <SelectItem key={type} value={type}>{type}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-3">
+                <Label>Clinical Diagnosis</Label>
+                <Input
+                  placeholder="Enter preliminary diagnosis"
+                  value={patientData.clinicalInfo.clinicalDiagnosis}
+                  onChange={(e) => handleInputChange('clinicalInfo', 'clinicalDiagnosis', e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-3">
                 <Label>Symptoms (Select all that apply)</Label>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {symptoms.map((symptom) => (
                     <div key={symptom} className="flex items-center space-x-2">
                       <Checkbox
                         id={symptom}
-                        checked={patientData.symptoms.includes(symptom)}
+                        checked={patientData.clinicalInfo.symptoms.includes(symptom)}
                         onCheckedChange={() => handleSymptomChange(symptom)}
                       />
                       <Label htmlFor={symptom} className="text-sm">
@@ -211,47 +369,105 @@ export function SampleUpload({ onNext }) {
         </TabsContent>
 
         <TabsContent value="sample-upload" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Droplets className="h-5 w-5 text-red-500" />
-                  Blood Sample Upload
-                </CardTitle>
-                <CardDescription>
-                  Upload blood smear images for CBC, hemoglobin analysis
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
-                  <Upload className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
-                  <Label htmlFor="blood-upload" className="cursor-pointer">
-                    <span className="text-sm font-medium">Click to upload blood samples</span>
-                    <br />
-                    <span className="text-xs text-muted-foreground">
-                      PNG, JPG up to 10MB each
-                    </span>
-                  </Label>
-                  <Input
-                    id="blood-upload"
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    className="hidden"
-                    onChange={handleFileUpload}
-                  />
-                </div>
-              </CardContent>
-            </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Upload className="h-5 w-5 text-blue-500" />
+                Medical Image Upload
+                {isAnalyzing && (
+                  <Badge variant="secondary" className="ml-2">
+                    <Brain className="h-3 w-3 mr-1" />
+                    AI Analyzing...
+                  </Badge>
+                )}
+              </CardTitle>
+              <CardDescription>
+                Upload medical images for AI-powered analysis and pathologist review
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center">
+                <Upload className="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
+                <Label htmlFor="image-upload" className="cursor-pointer">
+                  <span className="text-sm font-medium">Click to upload medical images</span>
+                  <br />
+                  <span className="text-xs text-muted-foreground">
+                    JPEG, PNG, TIFF, BMP up to 50MB each (max 10 files)
+                  </span>
+                </Label>
+                <Input
+                  id="image-upload"
+                  type="file"
+                  multiple
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                />
+              </div>
 
+              {/* Analysis Progress */}
+              {isAnalyzing && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <span className="text-sm">AI Analysis in Progress...</span>
+                  </div>
+                  <Progress value={analysisProgress} className="w-full" />
+                  <p className="text-xs text-muted-foreground">
+                    Processing images with ResNet50 tumor detection model
+                  </p>
+                </div>
+              )}
+
+              {/* Uploaded Files Display */}
+              {uploadedFiles.length > 0 && (
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Selected Files ({uploadedFiles.length})</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3 max-h-60 overflow-y-auto">
+                    {uploadedFiles.map((file) => (
+                      <div key={file.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          {file.preview && (
+                            <img 
+                              src={file.preview} 
+                              alt={file.name}
+                              className="w-10 h-10 object-cover rounded"
+                            />
+                          )}
+                          <div>
+                            <p className="text-sm font-medium truncate max-w-32">{file.name}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {(file.size / 1024 / 1024).toFixed(2)} MB
+                            </p>
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => removeFile(file.id)}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          ×
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="sample-upload" className="space-y-6">
+          <div className="grid gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <Camera className="h-5 w-5 text-blue-500" />
-                  Tissue Sample Upload
+                  <Upload className="h-5 w-5" />
+                  Upload Medical Images
                 </CardTitle>
                 <CardDescription>
-                  Upload tissue biopsy WSI files for cancer detection
+                  Upload tissue samples for pathological analysis
                 </CardDescription>
               </CardHeader>
               <CardContent>
@@ -319,15 +535,15 @@ export function SampleUpload({ onNext }) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label className="text-sm font-medium">Patient ID</Label>
-                  <p className="text-sm text-muted-foreground">{patientData.patientId || 'Not provided'}</p>
+                  <p className="text-sm text-muted-foreground">{patientData.patientInfo.patientId || 'Not provided'}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Full Name</Label>
-                  <p className="text-sm text-muted-foreground">{patientData.name || 'Not provided'}</p>
+                  <p className="text-sm text-muted-foreground">{patientData.patientInfo.name || 'Not provided'}</p>
                 </div>
                 <div>
-                  <Label className="text-sm font-medium">Test Type</Label>
-                  <p className="text-sm text-muted-foreground">{patientData.testType || 'Not selected'}</p>
+                  <Label className="text-sm font-medium">Sample Type</Label>
+                  <p className="text-sm text-muted-foreground">{patientData.sampleType || 'Not selected'}</p>
                 </div>
                 <div>
                   <Label className="text-sm font-medium">Files Uploaded</Label>
@@ -335,11 +551,11 @@ export function SampleUpload({ onNext }) {
                 </div>
               </div>
 
-              {patientData.symptoms.length > 0 && (
+              {patientData.clinicalInfo.symptoms.length > 0 && (
                 <div>
                   <Label className="text-sm font-medium">Symptoms</Label>
                   <div className="flex flex-wrap gap-1 mt-1">
-                    {patientData.symptoms.map(symptom => (
+                    {patientData.clinicalInfo.symptoms.map(symptom => (
                       <Badge key={symptom} variant="outline" className="text-xs">
                         {symptom}
                       </Badge>
@@ -348,17 +564,46 @@ export function SampleUpload({ onNext }) {
                 </div>
               )}
 
-              <Alert>
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Important</AlertTitle>
-                <AlertDescription>
-                  Please ensure all patient information is accurate and all required samples are uploaded before proceeding.
-                </AlertDescription>
-              </Alert>
+              {mlResults && (
+                <Alert>
+                  <Brain className="h-4 w-4" />
+                  <AlertTitle>AI Analysis Complete</AlertTitle>
+                  <AlertDescription>
+                    {mlResults.mlAnalysis ? 
+                      `${mlResults.mlAnalysis.imagesAnalyzed} images analyzed. ${mlResults.mlAnalysis.aiInsights?.highRiskImages || 0} high-risk findings detected.` :
+                      'Sample processing completed successfully.'
+                    }
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {!mlResults && (
+                <Alert>
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Important</AlertTitle>
+                  <AlertDescription>
+                    Please ensure all patient information is accurate and all required samples are uploaded before proceeding.
+                  </AlertDescription>
+                </Alert>
+              )}
             </CardContent>
             <CardFooter>
-              <Button onClick={handleSubmit} className="w-full">
-                Submit & Proceed to Analysis
+              <Button 
+                onClick={handleSubmit} 
+                className="w-full"
+                disabled={isAnalyzing || !patientData.patientInfo.patientId || !patientData.patientInfo.name || !patientData.sampleType || uploadedFiles.length === 0}
+              >
+                {isAnalyzing ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Processing & Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle2 className="mr-2 h-4 w-4" />
+                    Submit Sample for Analysis
+                  </>
+                )}
               </Button>
             </CardFooter>
           </Card>

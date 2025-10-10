@@ -94,6 +94,7 @@ const sampleSchema = new mongoose.Schema({
     mimetype: String,
     size: Number,
     path: String,
+    url: String, // Add URL field for frontend access
     uploadedAt: { type: Date, default: Date.now },
     magnification: String,
     staining: String,
@@ -101,8 +102,41 @@ const sampleSchema = new mongoose.Schema({
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User'
+    },
+    mlAnalysis: {
+      prediction: {
+        type: String,
+        enum: ['benign', 'malignant', 'indeterminate']
+      },
+      confidence: Number,
+      riskAssessment: {
+        type: String,
+        enum: ['low', 'medium', 'high']
+      },
+      processingTime: Number,
+      imageId: String,
+      modelVersion: String,
+      analyzedAt: { type: Date, default: Date.now },
+      metadata: mongoose.Schema.Types.Mixed
     }
   }],
+  aiAnalysis: {
+    overallPrediction: {
+      type: String,
+      enum: ['benign', 'malignant', 'indeterminate']
+    },
+    averageConfidence: Number,
+    highRiskImages: Number,
+    totalImagesAnalyzed: Number,
+    recommendations: [String],
+    flaggedFindings: [String],
+    batchAnalyzedAt: Date,
+    modelInfo: {
+      name: String,
+      version: String,
+      accuracy: Number
+    }
+  },
   status: {
     type: String,
     enum: {

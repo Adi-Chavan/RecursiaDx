@@ -21,6 +21,27 @@
   --chart-active-dot: #000;
 }
 
+/* Color theme variants */
+[data-theme="coral"] {
+  --main: #FB7185;
+  --chart-1: #FB7185;
+}
+
+[data-theme="purple"] {
+  --main: #A78BFA;
+  --chart-1: #A78BFA;
+}
+
+[data-theme="emerald"] {
+  --main: #34D399;
+  --chart-1: #34D399;
+}
+
+[data-theme="orange"] {
+  --main: #FB923C;
+  --chart-1: #FB923C;
+}
+
 .dark {
   --background: oklch(27.11% 0.0303 225.38);
   --secondary-background: oklch(23.93% 0 0);

@@ -13,7 +13,7 @@ body {
     linear-gradient(to right, #80808033 1px, transparent 1px),
     linear-gradient(to bottom, #80808033 1px, transparent 1px);
   background-size: 70px 79px;
-  background-color: #d8e7f5;
+  background-color: var(--background);
 }
 
 .logo {

@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { ThemeSwitcher } from './ThemeSwitcher'
 import { 
   Activity,
   Brain, 
@@ -113,12 +114,7 @@ export function HomePage({ onLogin, onSignup }) {
               <a href="#features" className="text-gray-600 hover:text-gray-900 transition-colors">
                 Features
               </a>
-              <a href="#testimonials" className="text-gray-600 hover:text-gray-900 transition-colors">
-                Testimonials
-              </a>
-              <a href="#pricing" className="text-gray-600 hover:text-gray-900 transition-colors">
-                Pricing
-              </a>
+              <ThemeSwitcher />
               <Button variant="outline" onClick={onLogin}>
                 Login
               </Button>
@@ -128,6 +124,7 @@ export function HomePage({ onLogin, onSignup }) {
             </div>
 
             <div className="md:hidden flex items-center gap-2">
+              <ThemeSwitcher />
               <Button variant="outline" size="sm" onClick={onLogin}>
                 Login
               </Button>
@@ -146,7 +143,7 @@ export function HomePage({ onLogin, onSignup }) {
             <div>
               <Badge className="mb-4">
                 <Award className="h-4 w-4 mr-2" />
-                Winner - HealthTech Innovation 2024
+                RecuriaDx - Digital Pathology Diagnostics
               </Badge>
               
               <h1 className="text-5xl lg:text-6xl font-bold text-gray-900 mb-6">
@@ -269,7 +266,7 @@ export function HomePage({ onLogin, onSignup }) {
       </section>
 
       {/* Features Section */}
-      <section id="features" className="py-24 bg-gray-50">
+      <section id="features" className="py-24 ">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
             <Badge className="mb-4">Core Features</Badge>
@@ -287,7 +284,7 @@ export function HomePage({ onLogin, onSignup }) {
             {features.map((feature, index) => {
               const Icon = feature.icon
               return (
-                <Card key={index} className="hover:shadow-lg transition-all duration-300 border-0 shadow-md">
+                <Card key={index} className="hover:shadow-lg transition-all duration-300 border-0 shadow-md bg-gray-50">
                   <CardHeader>
                     <div className={`w-12 h-12 rounded-lg bg-gray-100 flex items-center justify-center mb-4`}>
                       <Icon className={`h-6 w-6 ${feature.color}`} />
@@ -338,40 +335,6 @@ export function HomePage({ onLogin, onSignup }) {
               </Card>
             ))}
           </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="bg-gradient-to-r from-primary to-purple-600 text-white py-24">
-        <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
-          <h2 className="text-4xl lg:text-5xl font-bold mb-6">
-            Ready to transform your pathology lab?
-          </h2>
-          <p className="text-xl mb-8 opacity-90">
-            Join hundreds of medical facilities already using RecursiaDx to improve 
-            accuracy, reduce processing time, and enhance patient care.
-          </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              size="lg" 
-              variant="secondary"
-              onClick={onSignup}
-              className="text-lg px-8 py-4"
-            >
-              Start Your Free Trial
-              <ArrowRight className="ml-2 h-5 w-5" />
-            </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              className="text-lg px-8 py-4 border-white text-white hover:bg-white hover:text-primary"
-            >
-              Schedule Demo
-            </Button>
-          </div>
-          <p className="text-sm mt-6 opacity-75">
-            No credit card required • 30-day free trial • Setup in minutes
-          </p>
         </div>
       </section>
 

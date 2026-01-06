@@ -4,7 +4,7 @@ import { NavigationMenu, NavigationMenuContent, NavigationMenuItem, NavigationMe
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Bell, HelpCircle, Search } from 'lucide-react'
-import { ColorThemeChanger } from './ColorThemeChanger'
+import { ThemeSwitcher } from './ThemeSwitcher'
 
 export function NavigationHeader({ user, onLogout, onGoToHome }) {
   return (
@@ -67,7 +67,7 @@ export function NavigationHeader({ user, onLogout, onGoToHome }) {
             {user?.role ? `${user.role} Mode` : 'System Status: Online'}
           </Badge>
           
-          <ColorThemeChanger />
+          <ThemeSwitcher />
           
           <Button variant="ghost" size="sm">
             <Search className="h-4 w-4" />

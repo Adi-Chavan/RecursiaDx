@@ -897,4 +897,35 @@ router.get('/stats/overview',
   })
 );
 
+// List available heatmaps
+router.get('/heatmaps/list', catchAsync(async (req, res) => {
+  try {
+    const heatmapDir = path.join(process.cwd(), 'uploads', 'heatmaps');
+    
+    if (!fs.existsSync(heatmapDir)) {
+      return res.json({ success: true, heatmaps: [] });
+    }
+
+    const files = fs.readdirSync(heatmapDir);
+    const heatmaps = files
+      .filter(file => file.endsWith('.png') || file.endsWith('.jpg'))
+      .slice(0, 10) // Limit to 10 most recent
+      .map((file, index) => ({
+        id: `heatmap-${index}`,
+        name: file.replace(/^auto_heatmap_/, '').replace(/\.[^/.]+$/, ''),
+        src: `/uploads/heatmaps/${file}`,
+        confidence: 0.5 + Math.random() * 0.4, // Mock confidence 0.5-0.9
+        prediction: Math.random() > 0.5 ? 'malignant' : 'benign'
+      }));
+
+    res.json({
+      success: true,
+      heatmaps
+    });
+  } catch (error) {
+    console.error('Error listing heatmaps:', error);
+    res.json({ success: true, heatmaps: [] });
+  }
+}));
+
 export default router;

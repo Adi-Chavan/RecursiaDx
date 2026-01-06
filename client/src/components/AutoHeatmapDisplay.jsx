@@ -12,8 +12,23 @@ import {
 } from 'lucide-react'
 
 export function AutoHeatmapDisplay({ sample, className = "" }) {
-  // Get images with heatmaps
-  const imagesWithHeatmaps = sample?.images?.filter(img => img.heatmap) || []
+  // Debug logging
+  console.log('🔍 AutoHeatmapDisplay - Sample data:', sample)
+  
+  // Get images with heatmaps - check multiple possible data structures
+  const imagesWithHeatmaps = sample?.images?.filter(img => {
+    const hasHeatmap = img.heatmap || img.heatmapPath || img.heatmapBase64
+    console.log('🔍 Image heatmap check:', {
+      filename: img.filename,
+      hasHeatmap: !!hasHeatmap,
+      heatmap: img.heatmap,
+      heatmapPath: img.heatmapPath,
+      heatmapBase64: img.heatmapBase64
+    })
+    return hasHeatmap
+  }) || []
+  
+  console.log('🔍 Images with heatmaps found:', imagesWithHeatmaps.length)
   
   // Download heatmap
   const downloadHeatmap = (heatmapPath, filename) => {
@@ -40,6 +55,25 @@ export function AutoHeatmapDisplay({ sample, className = "" }) {
   }
 
   if (imagesWithHeatmaps.length === 0) {
+    // Try to find heatmaps by checking if any images have generated heatmaps
+    const allImages = sample?.images || []
+    const potentialHeatmaps = allImages.map((img, index) => {
+      // Generate potential heatmap path based on the image filename
+      const baseUrl = 'http://localhost:5001'
+      const heatmapPath = `/uploads/heatmaps/auto_heatmap_${img.filename}_${Date.now()}.png`
+      
+      return {
+        ...img,
+        heatmap: {
+          path: heatmapPath,
+          base64: null,
+          type: 'tumor_detection'
+        }
+      }
+    })
+
+    console.log('🔍 No heatmaps found, trying potential paths:', potentialHeatmaps)
+
     return (
       <div className={`space-y-6 ${className}`}>
         <Card>
@@ -52,14 +86,44 @@ export function AutoHeatmapDisplay({ sample, className = "" }) {
           <CardContent>
             <div className="text-center py-8">
               <Thermometer className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-semibold mb-2">No Heatmaps Available</h3>
+              <h3 className="text-lg font-semibold mb-2">Checking for Heatmaps...</h3>
               <p className="text-muted-foreground mb-4">
-                Heatmaps are automatically generated when you upload images with ML analysis.
+                Looking for generated heatmaps. If you just uploaded images, they may still be processing.
               </p>
-              {sample.images && sample.images.length > 0 ? (
-                <Badge variant="outline">
-                  {sample.images.length} image(s) uploaded - Processing heatmaps...
-                </Badge>
+              {sample?.images && sample.images.length > 0 ? (
+                <div className="space-y-4">
+                  <Badge variant="outline">
+                    {sample.images.length} image(s) uploaded
+                  </Badge>
+                  
+                  {/* Try to display any available heatmaps from uploads folder */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+                    {sample.images.map((img, index) => (
+                      <div key={index} className="border rounded-lg p-4">
+                        <div className="text-sm font-medium mb-2">
+                          {img.originalName || `Image ${index + 1}`}
+                        </div>
+                        {/* Try to load heatmap from common paths */}
+                        <div className="space-y-2">
+                          <img
+                            src={`http://localhost:5001/uploads/heatmaps/auto_heatmap_${img.filename}_*.png`}
+                            alt={`Potential heatmap for ${img.originalName}`}
+                            className="w-full h-32 object-cover rounded border"
+                            onError={(e) => {
+                              e.target.style.display = 'none'
+                            }}
+                            onLoad={(e) => {
+                              console.log('✅ Heatmap loaded successfully:', e.target.src)
+                            }}
+                          />
+                          <div className="text-xs text-muted-foreground">
+                            Looking for: auto_heatmap_{img.filename}*.png
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               ) : (
                 <Badge variant="secondary">
                   No images uploaded yet

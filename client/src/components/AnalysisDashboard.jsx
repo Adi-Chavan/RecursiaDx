@@ -9,6 +9,9 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { toast } from 'sonner'
 import { AutoHeatmapDisplay } from './AutoHeatmapDisplay'
+import { SimpleHeatmapViewer } from './SimpleHeatmapViewer'
+import { SimpleHeatmapDisplay } from './SimpleHeatmapDisplay'
+import { BasicHeatmapTest } from './BasicHeatmapTest'
 import { 
   Brain, 
   Activity, 
@@ -30,6 +33,23 @@ export function AnalysisDashboard({ onNext, sample, analysisType = 'general' }) 
   const [isAnalyzing, setIsAnalyzing] = useState(true)
   const [results, setResults] = useState(null)
   const [realTimeData, setRealTimeData] = useState(null)
+
+  // Enhanced debugging for sample data
+  console.log('🔍 AnalysisDashboard - Sample data received:', sample)
+  console.log('🔍 AnalysisDashboard - Sample type:', typeof sample)
+  console.log('🔍 AnalysisDashboard - Sample keys:', sample ? Object.keys(sample) : [])
+  
+  if (sample?.images) {
+    console.log('🔍 AnalysisDashboard - Images:', sample.images)
+    sample.images.forEach((img, idx) => {
+      console.log(`🔍 Image ${idx + 1} analysis:`, {
+        filename: img.filename,
+        hasHeatmap: !!img.heatmap,
+        hasMLAnalysis: !!img.mlAnalysis,
+        heatmapStructure: img.heatmap ? Object.keys(img.heatmap) : null
+      })
+    })
+  }
 
   // Extract real data from sample if available
   const extractRealData = () => {
@@ -826,7 +846,7 @@ export function AnalysisDashboard({ onNext, sample, analysisType = 'general' }) 
                     </Card>
                     <Card>
                       <CardContent className="p-4 text-center">
-                        <div className="text-2xl font-bold">97.3%</div>
+                        <div className="text-2xl font-bold">50.3%</div>
                         <div className="text-sm text-muted-foreground">Confidence Score</div>
                       </CardContent>
                     </Card>
@@ -844,7 +864,8 @@ export function AnalysisDashboard({ onNext, sample, analysisType = 'general' }) 
         </TabsContent>
 
         <TabsContent value="heatmaps" className="space-y-6">
-          <AutoHeatmapDisplay sample={sample} />
+          <BasicHeatmapTest />
+          <SimpleHeatmapDisplay />
         </TabsContent>
       </Tabs>
 

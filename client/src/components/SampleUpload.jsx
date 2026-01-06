@@ -234,7 +234,10 @@ export function SampleUpload({ onNext, onSampleCreated }) {
         </TabsList>
 
         <TabsContent value="patient-info" className="space-y-6">
-          <Card>
+          <Card className="grid-pattern" style={{
+            background: 'linear-gradient(to right, #80808033 1px, transparent 1px), linear-gradient(to bottom, #80808033 1px, transparent 1px)',
+            backgroundSize: '50px 49px'
+          }}>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Avatar>
@@ -459,7 +462,7 @@ export function SampleUpload({ onNext, onSampleCreated }) {
         </TabsContent>
 
         <TabsContent value="sample-upload" className="space-y-6">
-          <div className="grid gap-6">
+          {/* <div className="grid gap-6">
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -491,7 +494,7 @@ export function SampleUpload({ onNext, onSampleCreated }) {
                 </div>
               </CardContent>
             </Card>
-          </div>
+          </div> */}
 
           {uploadedFiles.length > 0 && (
             <Card>

@@ -13,6 +13,7 @@ import { ReportGeneration } from './components/ReportGeneration'
 import { MLDemo } from './components/MLDemo'
 import { Toaster } from '@/components/ui/sonner'
 import { AuthProvider, useAuth } from './contexts/AuthContext'
+import { ThemeProvider } from './contexts/ThemeContext'
 
 const AppContent = () => {
   const { isAuthenticated, user, logout, loading } = useAuth()
@@ -20,6 +21,48 @@ const AppContent = () => {
   const [currentPage, setCurrentPage] = useState('home') // home, login, signup, dashboard
   const [activeTab, setActiveTab] = useState('upload')
   const [currentSample, setCurrentSample] = useState(null) // Store current sample data
+
+  // Initialize Landbot chatbot
+  useEffect(() => {
+    let myLandbot;
+    
+    const initLandbot = () => {
+      if (!myLandbot) {
+        const script = document.createElement('script');
+        script.type = "module";
+        script.async = true;
+        script.addEventListener('load', function() {
+          if (window.Landbot) {
+            myLandbot = new window.Landbot.Livechat({
+              configUrl: 'https://storage.googleapis.com/landbot.online/v3/H-3173051-2X73C7LAZVS6DYU2/index.json',
+            });
+          }
+        });
+        script.src = 'https://cdn.landbot.io/landbot-3/landbot-3.0.0.mjs';
+        document.head.appendChild(script);
+      }
+    };
+
+    // Initialize on mouseover or touchstart (once)
+    const handleMouseOver = () => {
+      initLandbot();
+      document.removeEventListener('mouseover', handleMouseOver);
+    };
+    
+    const handleTouchStart = () => {
+      initLandbot();
+      document.removeEventListener('touchstart', handleTouchStart);
+    };
+
+    document.addEventListener('mouseover', handleMouseOver, { once: true });
+    document.addEventListener('touchstart', handleTouchStart, { once: true });
+
+    // Cleanup function
+    return () => {
+      document.removeEventListener('mouseover', handleMouseOver);
+      document.removeEventListener('touchstart', handleTouchStart);
+    };
+  }, []);
 
   // Update page based on authentication status
   useEffect(() => {
@@ -197,9 +240,11 @@ const AppContent = () => {
 
 const App = () => {
   return (
-    <AuthProvider>
-      <AppContent />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <AppContent />
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

@@ -457,19 +457,19 @@ export function ReportGeneration({ sample, onNext }) {
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Name:</span>
-                      <span>{patientInfo.name}</span>
+                      <span>{"Mohit Choudhari"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Age:</span>
-                      <span>{patientInfo.age} years</span>
+                      <span>{"20"} years</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Gender:</span>
-                      <span>{patientInfo.gender}</span>
+                      <span>{"Male"}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="font-medium">Blood Group:</span>
-                      <span>{patientInfo.bloodGroup}</span>
+                      <span>{"B+"}</span>
                     </div>
                   </div>
                 </CardContent>

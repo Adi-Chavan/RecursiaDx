@@ -8,7 +8,7 @@ const config = {
   server: {
     port: process.env.PORT || 5000,
     nodeEnv: process.env.NODE_ENV || 'development',
-    trustProxy: process.env.TRUST_PROXY === 'true'
+    
   },
 
   // Database configuration
